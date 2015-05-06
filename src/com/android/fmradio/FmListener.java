@@ -107,6 +107,9 @@ public interface FmListener {
 
     int NOT_AUDIO_FOCUS = 33;
 
+    // Fm main ext
+    int MSGID_OPENDEVICE_FINISHED = 50;
+
     // For refresh time
     int MSGID_REFRESH = 101;
 
