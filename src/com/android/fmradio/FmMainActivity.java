@@ -362,7 +362,7 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
             }
             if (!mService.isServiceInited()) {
                 mService.initService(mCurrentStation);
-                powerUpFm();
+                //powerUpFm();
             } else {
                 if (mService.isDeviceOpen()) {
                     // tune to station during changing language,we need to tune

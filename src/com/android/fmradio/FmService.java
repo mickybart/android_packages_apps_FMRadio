@@ -216,6 +216,9 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     private Notification.Builder mNotificationBuilder = null;
     private BigTextStyle mNotificationStyle = null;
 
+    // Sony Ericsson
+    private FmSonyEricsson mFmSonyEricsson = new FmSonyEricsson();
+
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
@@ -524,7 +527,8 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
 
     // A2dp or speaker mode should render
     private boolean isRender() {
-        return (mIsRender && (mPowerStatus == POWER_UP) && mIsAudioFocusHeld);
+        //return (mIsRender && (mPowerStatus == POWER_UP) && mIsAudioFocusHeld);
+        return true;
     }
 
     private boolean isSpeakerPhoneOn() {
@@ -538,7 +542,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
      */
     private boolean openDevice() {
         if (!mIsDeviceOpen) {
-            mIsDeviceOpen = FmNative.openDev();
+            mIsDeviceOpen = mFmSonyEricsson.openDev(mContext);
         }
         return mIsDeviceOpen;
     }
@@ -551,7 +555,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     private boolean closeDevice() {
         boolean isDeviceClose = false;
         if (mIsDeviceOpen) {
-            isDeviceClose = FmNative.closeDev();
+            isDeviceClose = mFmSonyEricsson.closeDev();
             mIsDeviceOpen = !isDeviceClose;
         }
         // quit looper
@@ -605,7 +609,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
             openDevice();
         }
 
-        if (!FmNative.powerUp(frequency)) {
+        if (!mFmSonyEricsson.powerUp(frequency)) {
             mPowerStatus = POWER_DOWN;
             return false;
         }
@@ -672,7 +676,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         setRds(false);
         enableFmAudio(false);
 
-        if (!FmNative.powerDown(0)) {
+        if (!mFmSonyEricsson.powerDown(0)) {
 
             if (isRdsSupported()) {
                 stopRdsThread();
@@ -725,7 +729,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     private boolean tuneStation(float frequency) {
         if (mPowerStatus == POWER_UP) {
             setRds(false);
-            boolean bRet = FmNative.tune(frequency);
+            boolean bRet = mFmSonyEricsson.tune(frequency);
             if (bRet) {
                 setRds(true);
                 mCurrentStation = FmUtils.computeStation(frequency);
@@ -777,7 +781,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
 
         setRds(false);
         mIsNativeSeeking = true;
-        float fRet = FmNative.seek(frequency, isUp);
+        float fRet = mFmSonyEricsson.seek(frequency, isUp);
         mIsNativeSeeking = false;
         // make mIsStopScanCalled false, avoid stop scan make this true,
         // when start scan, it will return null.
@@ -801,7 +805,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         short[] stationsInShort = null;
         if (!mIsStopScanCalled) {
             mIsNativeScanning = true;
-            stationsInShort = FmNative.autoScan();
+            stationsInShort = mFmSonyEricsson.autoScan();
             mIsNativeScanning = false;
         }
 
@@ -850,7 +854,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         mFmServiceHandler.removeMessages(FmListener.MSGID_SEEK_FINISHED);
         if (mIsNativeScanning || mIsNativeSeeking) {
             mIsStopScanCalled = true;
-            bRet = FmNative.stopScan();
+            bRet = mFmSonyEricsson.stopScan();
         }
         return bRet;
     }
@@ -885,7 +889,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         }
         int ret = -1;
         if (isRdsSupported()) {
-            ret = FmNative.setRds(on);
+            ret = mFmSonyEricsson.setRds(on);
         }
         return ret;
     }
@@ -924,7 +928,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
             return -1;
         }
 
-        int frequency = FmNative.activeAf();
+        int frequency = mFmSonyEricsson.activeAf();
         return frequency;
     }
 
@@ -957,7 +961,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
             Log.w(TAG, "setMute, FM is not powered up");
             return -1;
         }
-        int iRet = FmNative.setMute(mute);
+        int iRet = mFmSonyEricsson.setMute(mute);
         mIsMuted = mute;
         return iRet;
     }
@@ -977,7 +981,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
      * @return (true, support; false, not support)
      */
     public boolean isRdsSupported() {
-        boolean isRdsSupported = (FmNative.isRdsSupport() == 1);
+        boolean isRdsSupported = (mFmSonyEricsson.isRdsSupport() == 1);
         return isRdsSupported;
     }
 
@@ -1069,7 +1073,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
      */
     private int switchAntenna(int antenna) {
         // if fm not powerup, switchAntenna will flag whether has earphone
-        int ret = FmNative.switchAntenna(antenna);
+        int ret = mFmSonyEricsson.switchAntenna(antenna);
         return ret;
     }
 
@@ -1299,14 +1303,18 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
             if (port instanceof AudioDevicePort) {
                 int type = ((AudioDevicePort) port).type();
                 String name = AudioSystem.getOutputDeviceName(type);
+                Log.d(TAG,"AudioPort: " + name + " Type: " + Integer.toString(type));
                 if (type == AudioSystem.DEVICE_IN_FM_TUNER) {
                     mAudioSource = (AudioDevicePort) port;
+                    Log.d(TAG, "mAudioSource found");
                 } else if (type == AudioSystem.DEVICE_OUT_WIRED_HEADSET ||
                         type == AudioSystem.DEVICE_OUT_WIRED_HEADPHONE) {
                     mAudioSink = (AudioDevicePort) port;
+                    Log.d(TAG, "mAudioSink found. Type: " + type);
                 }
             }
         }
+        /*
         if (mAudioSource != null && mAudioSink != null) {
             AudioDevicePortConfig sourceConfig = (AudioDevicePortConfig) mAudioSource
                     .activeConfig();
@@ -1317,6 +1325,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                     new AudioPortConfig[] {sinkConfig});
             mAudioPatch = audioPatchArray[0];
         }
+        */
     }
 
     private FmOnAudioPortUpdateListener mAudioPortUpdateListener = null;
@@ -1431,6 +1440,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         exitRenderThread();
         releaseAudioPatch();
         unregisterAudioPortUpdateListener();
+        mFmSonyEricsson.closeDev();
         super.onDestroy();
     }
 
@@ -1500,13 +1510,13 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                         break;
                     }
 
-                    int iRdsEvents = FmNative.readRds();
+                    int iRdsEvents = mFmSonyEricsson.readRds();
                     if (iRdsEvents != 0) {
                         Log.d(TAG, "startRdsThread, is rds events: " + iRdsEvents);
                     }
 
                     if (RDS_EVENT_PROGRAMNAME == (RDS_EVENT_PROGRAMNAME & iRdsEvents)) {
-                        byte[] bytePS = FmNative.getPs();
+                        byte[] bytePS = mFmSonyEricsson.getPs();
                         if (null != bytePS) {
                             String ps = new String(bytePS).trim();
                             if (!mPsString.equals(ps)) {
@@ -1528,7 +1538,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                     }
 
                     if (RDS_EVENT_LAST_RADIOTEXT == (RDS_EVENT_LAST_RADIOTEXT & iRdsEvents)) {
-                        byte[] byteLRText = FmNative.getLrText();
+                        byte[] byteLRText = mFmSonyEricsson.getLrText();
                         if (null != byteLRText) {
                             String rds = new String(byteLRText).trim();
                             if (!mRtTextString.equals(rds)) {
@@ -1558,7 +1568,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                         } else if (mPowerStatus == POWER_DOWN) {
                             Log.d(TAG, "startRdsThread, fm is power down, do nothing.");
                         } else {
-                            int iFreq = FmNative.activeAf();
+                            int iFreq = mFmSonyEricsson.activeAf();
                             if (FmUtils.isValidStation(iFreq)) {
                                 // if the new frequency is not equal to current
                                 // frequency.
@@ -2657,10 +2667,10 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
             return false;
         }
         boolean isSeekTune = false;
-        float seekStation = FmNative.seek(frequency, false);
+        float seekStation = mFmSonyEricsson.seek(frequency, false);
         int station = FmUtils.computeStation(seekStation);
         if (FmUtils.isValidStation(station)) {
-            isSeekTune = FmNative.tune(seekStation);
+            isSeekTune = mFmSonyEricsson.tune(seekStation);
             if (isSeekTune) {
                 playFrequency(seekStation);
             }
