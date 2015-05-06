@@ -57,12 +57,19 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
     public boolean openDev(Context context) {
         Log.i(TAG, "openDev");
 
-        if (mFmReceiver == null) {
-            mFmReceiver = FmReceiver.createInstance(context, this);
-        }
+        synchronized (lock) {
+            if (mFmReceiver == null) {
+                mFmReceiver = FmReceiver.createInstance(context, this);
+                try {
+                    lock.wait();
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "Interrupted: " + e.getMessage());
+                }
+            }
 
-        if (mFmBand == null) {
-            mFmBand = new FmBand(FmBand.BAND_US);
+            if (mFmBand == null) {
+                mFmBand = new FmBand(FmBand.BAND_US);
+            }
         }
 
         return (mFmReceiver != null);
@@ -95,7 +102,7 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
     public boolean powerUp(float frequency) {
         Log.i(TAG, "powerUp: " + Float.toString(frequency));
         if (turnRadioOn()) {
-            if (setFrequency(frequency)) {
+            if (tune(frequency)) {
                 return true;
             } else {
                 turnOffRadio();
@@ -127,7 +134,10 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
      */
     public boolean tune(float frequency) {
         Log.i(TAG, "tune: " + Float.toString(frequency));
-        return setFrequency(frequency);
+        setFrequency((int)(frequency * 10.0));
+
+        //TODO: update FMRadio to don't block the user when the frequency is not available on the BAND
+        return true;
     }
 
     /**
@@ -143,15 +153,16 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
         synchronized (lock) {
             mFreqNext = 0.0f;
 
-            float freq_next = frequency;
+            int freq_next = (int) (frequency * 10.0f);
             int limit = 10; //1 Mhz
 
+            do
             {
                 limit --;
                 if (isUp)
-                    freq_next += 0.1f;
+                    freq_next++;
                 else
-                    freq_next -= 0.1f;
+                    freq_next--;
             } while (!setFrequency(freq_next) && limit >= 0);
 
             if (isUp) {
@@ -361,20 +372,18 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
      *
      * @param freq frequency to tune to
      */
-    private boolean setFrequency(float freq) {
-        Log.i(TAG, "setFrequency " + Float.toString(freq));
+    private boolean setFrequency(int freq) {
+        Log.i(TAG, "setFrequency " + Integer.toString(freq));
         try {
-            mFmReceiver.setFrequency((int) (freq * 1000.0));
+            mFmReceiver.setFrequency(freq * 100);
+            return true;
         } catch (IOException e) {
             Log.e(TAG, "Set frequency failed! E.: " + e.getMessage());
-            return false;
         } catch (IllegalArgumentException e) {
             Log.e(TAG, "Set frequency failed : " + e.getMessage());
-            //TODO: permit to jump to a valid frequency properly on the Application
-            return true;
         }
 
-        return true;
+        return false;
     }
 
     /**
@@ -395,7 +404,7 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
 
             synchronized (lock) {
                 mStationListScanned = mStationList;
-                lock.notify();
+                lock.notifyAll();
             }
         }
 
@@ -407,7 +416,7 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
 
             synchronized (lock) {
                 mFreqNext = freq;
-                lock.notify();
+                lock.notifyAll();
             }
         }
     };
@@ -415,5 +424,9 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
     public void onServiceAvailable() {
         Log.i(TAG, "onServiceAvailable");
         mFmReceiver.addOnScanListener(mReceiverScanListener);
+
+        synchronized (lock){
+            lock.notifyAll();
+        }
     }
 }
