@@ -225,6 +225,11 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
             Bundle bundle;
             switch (msg.what) {
 
+                case FmListener.MSGID_OPENDEVICE_FINISHED:
+                    // powerUpFm()
+                    powerUpFm();
+                    break;
+
                 case FmListener.MSGID_POWERUP_FINISHED:
                     bundle = msg.getData();
                     boolean isPowerup = (mService.getPowerStatus() == FmService.POWER_UP);
@@ -235,6 +240,7 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
                         refreshImageButton(true);
                         refreshPopupMenuItem(true);
                         refreshActionMenuItem(true);
+                        mService.setMute(false);
                     } else {
                         showToast(getString(R.string.not_available));
                     }

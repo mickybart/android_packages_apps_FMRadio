@@ -2095,6 +2095,10 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                     openDevice();
                     // set speaker to default status, avoid setting->clear data.
                     setForceUse(mIsSpeakerUsed);
+
+                    bundle = new Bundle(1);
+                    bundle.putInt(FmListener.CALLBACK_FLAG, FmListener.MSGID_OPENDEVICE_FINISHED);
+                    notifyActivityStateChanged(bundle);
                     break;
 
                 // power up
@@ -2326,13 +2330,16 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
             return;
         }
 
-        if (powerUp(curFrequency)) {
-            if (FmUtils.isFirstTimePlayFm(mContext)) {
-                isPowerUp = firstPlaying(curFrequency);
-                FmUtils.setIsFirstTimePlayFm(mContext);
-            } else {
-                isPowerUp = playFrequency(curFrequency);
+        if (FmUtils.isFirstTimePlayFm(mContext)) {
+            FmUtils.setIsFirstTimePlayFm(mContext);
+            if (powerUp(curFrequency)) {
+                curFrequency = seekStation(curFrequency, false);
+                powerDown();
             }
+        }
+
+        if (powerUp(curFrequency)) {
+            isPowerUp = playFrequency(curFrequency);
             mPausedByTransientLossOfFocus = false;
         } else {
             exitRenderThread(true);
