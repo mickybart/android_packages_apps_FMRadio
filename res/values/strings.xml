@@ -115,4 +115,10 @@
     <string name="toast_listen">LISTEN</string>
     <!-- Snackbar message shown after we rename a favorite station [CHAR LIMIT=50] -->
     <string name="toast_station_renamed">The station has been renamed</string>
+    <!-- Band Selection -->
+    <string name="band_select">Select Band</string>
+    <string name="band_us">U.S.</string>
+    <string name="band_eu">Europe</string>
+    <string name="band_ja">Japan</string>
+    <string name="band_ch">China</string>
 </resources>

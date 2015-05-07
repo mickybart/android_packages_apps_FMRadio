@@ -68,7 +68,7 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
             }
 
             if (mFmBand == null) {
-                mFmBand = new FmBand(FmBand.BAND_US);
+                setFmBandSupport(FmUtils.FM_BAND_US);
             }
         }
 
@@ -86,7 +86,6 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
         if (mFmReceiver != null) {
             mFmReceiver.cleanup();
             mFmReceiver = null;
-            mFmBand = null;
         }
 
         return (mFmReceiver == null);
@@ -328,6 +327,42 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
     public int switchAntenna(int antenna) {
         Log.i(TAG, "switchAntenna " + Integer.toString(antenna));
         return 2;
+    }
+
+    /**
+     * Fm Band support
+     * @return (true, yes; false, no)
+     */
+    public boolean isFmBandSupport() {
+        return true;
+    }
+
+    /**
+     * Set Fm Band
+     * @param band
+     * @return (true, success; false, failed)
+     */
+    public boolean setFmBandSupport(int band) {
+        Log.i(TAG, "setFmBandSupport: " + Integer.toString(band));
+
+        switch (band) {
+            case FmUtils.FM_BAND_US:
+                mFmBand = new FmBand(FmBand.BAND_US);
+                break;
+            case FmUtils.FM_BAND_EU:
+                mFmBand = new FmBand(FmBand.BAND_EU);
+                break;
+            case FmUtils.FM_BAND_CH:
+                mFmBand = new FmBand(FmBand.BAND_CHINA);
+                break;
+            case FmUtils.FM_BAND_JA:
+                mFmBand = new FmBand(FmBand.BAND_JAPAN);
+                break;
+            default:
+                return false;
+        }
+
+        return true;
     }
 
     /**

@@ -64,4 +64,9 @@
     <string name="toast_record_not_saved" msgid="6526674547687611282">"Η εγγραφή δεν αποθηκεύτηκε"</string>
     <string name="toast_listen" msgid="2014315478895754055">"ΑΚΡΟΑΣΗ"</string>
     <string name="toast_station_renamed" msgid="2185292052267585710">"Ο σταθμός μετονομάστηκε"</string>
+    <string name="band_select">Επιλογή μπάντας</string>
+    <string name="band_us">ΗΠΑ</string>
+    <string name="band_eu">Ευρώπη</string>
+    <string name="band_ja">Ιαπωνία</string>
+    <string name="band_ch">Κίνα</string>
 </resources>

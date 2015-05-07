@@ -64,4 +64,9 @@
     <string name="toast_record_not_saved" msgid="6526674547687611282">"A felvétel nincs mentve"</string>
     <string name="toast_listen" msgid="2014315478895754055">"HALLGATÁS"</string>
     <string name="toast_station_renamed" msgid="2185292052267585710">"Az állomást átnevezte"</string>
+    <string name="band_select">Válasszon régiót</string>
+    <string name="band_us">U.S</string>
+    <string name="band_eu">Európa</string>
+    <string name="band_ja">Japán</string>
+    <string name="band_ch">Kína</string>
 </resources>

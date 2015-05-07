@@ -64,4 +64,9 @@
     <string name="toast_record_not_saved" msgid="6526674547687611282">"Záznam sa neuložil"</string>
     <string name="toast_listen" msgid="2014315478895754055">"POČÚVAŤ"</string>
     <string name="toast_station_renamed" msgid="2185292052267585710">"Stanica bola premenovaná"</string>
+    <string name="band_select">Vyberte pásmo</string>
+    <string name="band_us">Spojené štáty</string>
+    <string name="band_eu">Európa</string>
+    <string name="band_ja">Japonsko</string>
+    <string name="band_ch">Čína</string>
 </resources>

@@ -109,6 +109,7 @@ public interface FmListener {
 
     // Fm main ext
     int MSGID_OPENDEVICE_FINISHED = 50;
+    int MSGID_POWERDOWNUP_FINISHED = 51;
 
     // For refresh time
     int MSGID_REFRESH = 101;

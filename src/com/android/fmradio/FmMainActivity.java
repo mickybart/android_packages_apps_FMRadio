@@ -126,6 +126,8 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
 
     private MenuItem mMenuItemRecordList = null;
 
+    private MenuItem mMenuItemFmBand = null;
+
     // State variables
     private boolean mIsServiceStarted = false;
 
@@ -743,6 +745,8 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
         mMenuItemHeadset = menu.findItem(R.id.fm_headset);
         mMenuItemStartRecord = menu.findItem(R.id.fm_start_record);
         mMenuItemRecordList = menu.findItem(R.id.fm_record_list);
+        mMenuItemFmBand = menu.findItem(R.id.fm_band);
+        mMenuItemFmBand.getSubMenu().getItem(FmUtils.getFmBandSelected(this)).setChecked(true);
 
         /**
          * Don't show record feature
@@ -750,7 +754,7 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
          */
         mMenuItemStartRecord.setVisible(false);
         mMenuItemRecordList.setVisible(false);
-        
+
         return true;
     }
 
@@ -844,6 +848,23 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
                                 "onOptionsItemSelected, No activity respond playlist view intent");
                     }
                 }
+                break;
+
+            case R.id.fm_band_us:
+                item.setChecked(true);
+                changeBandFm(FmUtils.FM_BAND_US);
+                break;
+            case R.id.fm_band_eu:
+                item.setChecked(true);
+                changeBandFm(FmUtils.FM_BAND_EU);
+                break;
+            case R.id.fm_band_ch:
+                item.setChecked(true);
+                changeBandFm(FmUtils.FM_BAND_CH);
+                break;
+            case R.id.fm_band_ja:
+                item.setChecked(true);
+                changeBandFm(FmUtils.FM_BAND_JA);
                 break;
             default:
                 Log.e(TAG, "onOptionsItemSelected, invalid options menu item.");
@@ -957,6 +978,23 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
         mService.powerDownAsync();
     }
 
+    /**
+     * Change Band FM
+     */
+    private void changeBandFm(int band) {
+        mService.setFmBandSupport(band);
+        FmUtils.setFmBandSelected(mContext, band);
+
+        if (mService.getPowerStatus() != FmService.POWER_UP)
+            return;
+
+        refreshImageButton(false);
+        refreshActionMenuItem(false);
+        refreshPopupMenuItem(false);
+        refreshPlayButton(false);
+        mService.powerDownUpAsync(mCurrentStation);
+    }
+
     private void setSpeakerPhoneOn(boolean isSpeaker) {
         if (isSpeaker) {
             mService.setSpeakerPhoneOn(true);
@@ -1011,6 +1049,9 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
             mMenuItemStationlList.setEnabled(enabled);
             // If BT headset is in use, need to disable speaker/earphone switching menu.
             mMenuItemHeadset.setEnabled(enabled && !mService.isBluetoothHeadsetInUse());
+            // FmBand
+            mMenuItemFmBand.setVisible(mService.isFmBandSupport());
+            mMenuItemFmBand.setEnabled(enabled && mService.isFmBandSupport());
         }
     }
 

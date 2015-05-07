@@ -64,4 +64,8 @@
     <string name="toast_record_not_saved" msgid="6526674547687611282">"Nahrávka nebyla uložena"</string>
     <string name="toast_listen" msgid="2014315478895754055">"POSLOUCHAT"</string>
     <string name="toast_station_renamed" msgid="2185292052267585710">"Název stanice byl změněn"</string>
+    <string name="band_select">Zvolte pásmo</string>
+    <string name="band_eu">Evropa</string>
+    <string name="band_ja">Japonsko</string>
+    <string name="band_ch">Čína</string>
 </resources>

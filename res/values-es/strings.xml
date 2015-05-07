@@ -64,4 +64,9 @@
     <string name="toast_record_not_saved" msgid="6526674547687611282">"Grabación no guardada"</string>
     <string name="toast_listen" msgid="2014315478895754055">"ESCUCHAR"</string>
     <string name="toast_station_renamed" msgid="2185292052267585710">"Se ha cambiado el nombre de la emisora"</string>
+    <string name="band_select">Seleccionar banda</string>
+    <string name="band_us">Estadounidense</string>
+    <string name="band_eu">Europea</string>
+    <string name="band_ja">Japonesa</string>
+    <string name="band_ch">China</string>
 </resources>

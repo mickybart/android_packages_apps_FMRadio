@@ -64,4 +64,9 @@
     <string name="toast_record_not_saved" msgid="6526674547687611282">"Aufnahme nicht gespeichert"</string>
     <string name="toast_listen" msgid="2014315478895754055">"Hören"</string>
     <string name="toast_station_renamed" msgid="2185292052267585710">"Der Sender wurde umbenannt."</string>
+    <string name="band_select">Frequenz auswählen</string>
+    <string name="band_us">USA</string>
+    <string name="band_eu">Europa</string>
+    <string name="band_ja">Japan</string>
+    <string name="band_ch">China</string>
 </resources>

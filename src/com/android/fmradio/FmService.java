@@ -204,6 +204,9 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     // Sony Ericsson
     private FmSonyEricsson mFmSonyEricsson = null;
 
+    // FmBand
+    private int mSelectedBand;
+
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
@@ -280,6 +283,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                             FmListener.MSGID_POWERDOWN_FINISHED);
                     mFmServiceHandler.removeMessages(
                             FmListener.MSGID_POWERUP_FINISHED);
+                    mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWNUP_FINISHED);
                     focusChanged(AudioManager.AUDIOFOCUS_LOSS);
 
                     // Need check to switch to earphone mode for audio will
@@ -423,6 +427,8 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
 
         @Override
         public void run() {
+            Log.i(TAG, "RenderThread begin");
+
             try {
                 mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.FM_TUNER,
                         SAMPLE_RATE, AudioFormat.CHANNEL_IN_STEREO, AUDIO_FORMAT, RECORD_BUF_SIZE);
@@ -476,6 +482,8 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                     mAudioTrack = null;
                 }
             }
+
+            Log.i(TAG, "RenderThread end");
         }
     }
 
@@ -539,6 +547,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         final int bundleSize = 1;
         mFmServiceHandler.removeMessages(FmListener.MSGID_POWERUP_FINISHED);
         mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWN_FINISHED);
+        mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWNUP_FINISHED);
         Bundle bundle = new Bundle(bundleSize);
         bundle.putInt(FM_FREQUENCY, frequency);
         Message msg = mFmServiceHandler.obtainMessage(FmListener.MSGID_POWERUP_FINISHED);
@@ -610,6 +619,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWN_FINISHED);
         mFmServiceHandler.removeMessages(FmListener.MSGID_POWERUP_FINISHED);
         mFmServiceHandler.sendEmptyMessage(FmListener.MSGID_POWERDOWN_FINISHED);
+        mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWNUP_FINISHED);
     }
 
     /**
@@ -652,6 +662,23 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         // Remove the notification in the title bar.
         removeNotification();
         return true;
+    }
+
+    /**
+     * power down and up
+     *
+     * @param frequency
+     */
+    public void powerDownUpAsync(int frequency) {
+        final int bundleSize = 1;
+        mFmServiceHandler.removeMessages(FmListener.MSGID_POWERUP_FINISHED);
+        mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWN_FINISHED);
+        mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWNUP_FINISHED);
+        Bundle bundle = new Bundle(bundleSize);
+        bundle.putInt(FM_FREQUENCY, frequency);
+        Message msg = mFmServiceHandler.obtainMessage(FmListener.MSGID_POWERDOWNUP_FINISHED);
+        msg.setData(bundle);
+        mFmServiceHandler.sendMessage(msg);
     }
 
     public int getPowerStatus() {
@@ -1015,6 +1042,19 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     }
 
     /**
+     * FmBand support
+     *
+     * @return (true: yes, false: no)
+     */
+    public boolean isFmBandSupport() {
+        return mFmSonyEricsson.isFmBandSupport();
+    }
+
+    public boolean setFmBandSupport(int band) {
+        return mFmSonyEricsson.setFmBandSupport(band);
+    }
+
+    /**
      * Start recording
      */
     public void startRecordingAsync() {
@@ -1182,9 +1222,12 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
         mWakeLock.setReferenceCounted(false);
         sRecordingSdcard = FmUtils.getDefaultStoragePath();
+        mSelectedBand = FmUtils.getFmBandSelected(mContext);
 
         //Init FM Radio Instance
         mFmSonyEricsson = new FmSonyEricsson();
+        if (mFmSonyEricsson.isFmBandSupport())
+            mFmSonyEricsson.setFmBandSupport(mSelectedBand);
 
         registerFmBroadcastReceiver();
         registerSdcardReceiver();
@@ -1790,6 +1833,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                     final int bundleSize = 1;
                     mFmServiceHandler.removeMessages(FmListener.MSGID_POWERUP_FINISHED);
                     mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWN_FINISHED);
+                    mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWNUP_FINISHED);
                     Bundle bundle = new Bundle(bundleSize);
                     bundle.putInt(FM_FREQUENCY, mCurrentStation);
                     handlePowerUp(bundle);
@@ -2061,6 +2105,13 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                 // power down
                 case FmListener.MSGID_POWERDOWN_FINISHED:
                     handlePowerDown();
+                    break;
+
+                // Reset : power down and power up
+                case FmListener.MSGID_POWERDOWNUP_FINISHED:
+                    bundle = msg.getData();
+                    handlePowerDown();
+                    handlePowerUp(bundle);
                     break;
 
                 // fm exit

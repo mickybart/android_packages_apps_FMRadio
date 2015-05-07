@@ -34,6 +34,22 @@
                     android:enabled="true"/>
           </menu>
     </item>
+    <item android:id="@+id/fm_band"
+        android:showAsAction="never"
+        android:title="@string/band_select">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item android:id="@+id/fm_band_us"
+                    android:title="@string/band_us"/>
+                <item android:id="@+id/fm_band_eu"
+                    android:title="@string/band_eu" />
+                <item android:id="@+id/fm_band_ch"
+                    android:title="@string/band_ch" />
+                <item android:id="@+id/fm_band_ja"
+                    android:title="@string/band_ja" />
+            </group>
+        </menu>
+    </item>
     <item
         android:id="@+id/fm_start_record"
         android:showAsAction ="never"
