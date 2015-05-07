@@ -278,7 +278,7 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
      * @return (true, success; false, failed)
      */
     public int setMute(boolean mute) {
-        Log.i(TAG, "setMute" + Boolean.toString(mute));
+        Log.i(TAG, "setMute " + Boolean.toString(mute));
         if (!mute && mFmReceiver.getState() == FmReceiver.STATE_PAUSED && !mPauseMutex) {
             try {
                 mPauseMutex = true;
