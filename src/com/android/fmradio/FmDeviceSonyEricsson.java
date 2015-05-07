@@ -82,8 +82,9 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
      */
     public boolean closeDev(){
         Log.i(TAG, "closeDev");
-        turnOffRadio();
+
         if (mFmReceiver != null) {
+            turnOffRadio();
             mFmReceiver.cleanup();
             mFmReceiver = null;
         }
@@ -100,6 +101,10 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
      */
     public boolean powerUp(int frequency) {
         Log.i(TAG, "powerUp: " + Integer.toString(frequency));
+
+        if (mFmReceiver == null)
+            return false;
+
         if (turnRadioOn()) {
             if (tune(frequency)) {
                 return true;
@@ -121,6 +126,10 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
      */
     public boolean powerDown(int type) {
         Log.i(TAG, "powerDown: " + Integer.toString(type));
+
+        if (mFmReceiver == null)
+            return true;
+
         return turnOffRadio();
     }
 
@@ -133,6 +142,10 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
      */
     public boolean tune(int frequency) {
         Log.i(TAG, "tune: " + Integer.toString(frequency));
+
+        if (mFmReceiver == null)
+            return false;
+
         setFrequency(frequency);
 
         //TODO: update FMRadio to don't block the user when the frequency is not available on the BAND
@@ -149,6 +162,10 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
      */
     public int seek(int frequency, boolean isUp) {
         Log.i(TAG, "seek " + Integer.toString(frequency) + " isUp " + Boolean.toString(isUp));
+
+        if (mFmReceiver == null)
+            return frequency;
+
         synchronized (lock) {
             mFreqNext = 0;
 
@@ -188,6 +205,9 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
     public short[] autoScan() {
         Log.i(TAG, "autoScan");
 
+        if (mFmReceiver == null)
+            return null;
+
         synchronized (lock) {
             try {
                 mStationListScanned = null;
@@ -211,6 +231,10 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
      */
     public boolean stopScan() {
         Log.i(TAG, "stopScan");
+
+        if (mFmReceiver == null)
+            return true;
+
         if (mFmReceiver.getState() == FmReceiver.STATE_SCANNING) {
             mFmReceiver.stopScan();
         }
@@ -279,6 +303,10 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
      */
     public int setMute(boolean mute) {
         Log.i(TAG, "setMute " + Boolean.toString(mute));
+
+        if (mFmReceiver == null)
+            return 1;
+
         if (!mute && mFmReceiver.getState() == FmReceiver.STATE_PAUSED && !mPauseMutex) {
             try {
                 mPauseMutex = true;
@@ -412,10 +440,8 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
         try {
             mFmReceiver.setFrequency(freq * 100);
             return true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e(TAG, "Set frequency failed! E.: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            Log.e(TAG, "Set frequency failed : " + e.getMessage());
         }
 
         return false;
