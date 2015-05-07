@@ -27,9 +27,9 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 /**
- * This class define FM Sony Ericsson interface, (FM native interface)
+ * This class define FM Sony Ericsson interface
  */
-public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
+public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvailableListener {
     private static String TAG = "FmSonyEricsson";
 
     // Handle to the FM radio Band object
