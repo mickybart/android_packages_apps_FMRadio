@@ -130,14 +130,14 @@ public class FmFavoriteActivity extends Activity {
                 // Set the selected frequency to main UI and finish the
                 // favorite manager.
                 TextView textView = (TextView) view.findViewById(R.id.lv_station_freq);
-                float frequency = 0;
+                int frequency = 0;
                 try {
-                    frequency = Float.parseFloat(textView.getText().toString());
+                    frequency =  (int) (Float.parseFloat(textView.getText().toString()) * 10);
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                 }
                 Intent intentResult = new Intent();
-                intentResult.putExtra(ACTIVITY_RESULT, FmUtils.computeStation(frequency));
+                intentResult.putExtra(ACTIVITY_RESULT, frequency);
                 setResult(RESULT_OK, intentResult);
                 finish();
             }

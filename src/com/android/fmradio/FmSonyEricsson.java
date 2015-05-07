@@ -44,7 +44,7 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
     //Thread
     private Object lock = new Object();
     private short[] mStationListScanned = null;
-    private float mFreqNext = 0.0f;
+    private int mFreqNext = 0;
 
     //State
     private boolean started = false;
@@ -99,8 +99,8 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
      *
      * @return (true, success; false, failed)
      */
-    public boolean powerUp(float frequency) {
-        Log.i(TAG, "powerUp: " + Float.toString(frequency));
+    public boolean powerUp(int frequency) {
+        Log.i(TAG, "powerUp: " + Integer.toString(frequency));
         if (turnRadioOn()) {
             if (tune(frequency)) {
                 return true;
@@ -132,9 +132,9 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
      *
      * @return (true, success; false, failed)
      */
-    public boolean tune(float frequency) {
-        Log.i(TAG, "tune: " + Float.toString(frequency));
-        setFrequency((int)(frequency * 10.0));
+    public boolean tune(int frequency) {
+        Log.i(TAG, "tune: " + Integer.toString(frequency));
+        setFrequency(frequency);
 
         //TODO: update FMRadio to don't block the user when the frequency is not available on the BAND
         return true;
@@ -148,12 +148,12 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
      *
      * @return frequency(float)
      */
-    public float seek(float frequency, boolean isUp) {
-        Log.i(TAG, "seek " + Float.toString(frequency) + " isUp " + Boolean.toString(isUp));
+    public int seek(int frequency, boolean isUp) {
+        Log.i(TAG, "seek " + Integer.toString(frequency) + " isUp " + Boolean.toString(isUp));
         synchronized (lock) {
-            mFreqNext = 0.0f;
+            mFreqNext = 0;
 
-            int freq_next = (int) (frequency * 10.0f);
+            int freq_next = frequency;
             int limit = 10; //1 Mhz
 
             do
@@ -412,10 +412,8 @@ public class FmSonyEricsson implements FmReceiver.onServiceAvailableListener {
         public void onScan(int tunedFrequency, int signalStrength, int scanDirection, boolean aborted) {
             Log.i(TAG, "onScan(). freq: " + tunedFrequency + ", signal: " + signalStrength + ", dir: " + scanDirection + ", aborted? " + aborted);
 
-            float freq = ((float) tunedFrequency / 1000);
-
             synchronized (lock) {
-                mFreqNext = freq;
+                mFreqNext = tunedFrequency / 100;
                 lock.notifyAll();
             }
         }

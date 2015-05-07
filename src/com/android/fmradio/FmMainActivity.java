@@ -277,8 +277,7 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
 
                     // tune finished, should make power enable
                     mIsDisablePowerMenu = false;
-                    float frequency = bundle.getFloat(FmListener.KEY_TUNE_TO_STATION);
-                    mCurrentStation = FmUtils.computeStation(frequency);
+                    mCurrentStation = bundle.getInt(FmListener.KEY_TUNE_TO_STATION);
                     // After tune to station finished, refresh favorite button and
                     // other button status.
                     refreshStationUI(mCurrentStation);
@@ -936,7 +935,7 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
         refreshActionMenuItem(false);
         refreshPopupMenuItem(false);
         refreshPlayButton(false);
-        mService.powerUpAsync(FmUtils.computeFrequency(mCurrentStation));
+        mService.powerUpAsync(mCurrentStation);
     }
 
     /**
@@ -968,7 +967,7 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
         refreshActionMenuItem(false);
         refreshPopupMenuItem(false);
         refreshPlayButton(false);
-        mService.tuneStationAsync(FmUtils.computeFrequency(station));
+        mService.tuneStationAsync(station);
     }
 
     /**
@@ -984,7 +983,7 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
         refreshActionMenuItem(false);
         refreshPopupMenuItem(false);
         refreshPlayButton(false);
-        mService.seekStationAsync(FmUtils.computeFrequency(station), direction);
+        mService.seekStationAsync(station, direction);
     }
 
     private void refreshImageButton(boolean enabled) {

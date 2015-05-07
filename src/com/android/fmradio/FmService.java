@@ -271,7 +271,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                  * foreground. power up FM automatic
                  */
                 if ((0 == mValueHeadSetPlug) && isActivityForeground()) {
-                    powerUpAsync(FmUtils.computeFrequency(mCurrentStation));
+                    powerUpAsync(mCurrentStation);
                 } else if (1 == mValueHeadSetPlug) {
                     mFmServiceHandler.removeMessages(FmListener.MSGID_SCAN_FINISHED);
                     mFmServiceHandler.removeMessages(FmListener.MSGID_SEEK_FINISHED);
@@ -535,18 +535,18 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
      *
      * @param frequency
      */
-    public void powerUpAsync(float frequency) {
+    public void powerUpAsync(int frequency) {
         final int bundleSize = 1;
         mFmServiceHandler.removeMessages(FmListener.MSGID_POWERUP_FINISHED);
         mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWN_FINISHED);
         Bundle bundle = new Bundle(bundleSize);
-        bundle.putFloat(FM_FREQUENCY, frequency);
+        bundle.putInt(FM_FREQUENCY, frequency);
         Message msg = mFmServiceHandler.obtainMessage(FmListener.MSGID_POWERUP_FINISHED);
         msg.setData(bundle);
         mFmServiceHandler.sendMessage(msg);
     }
 
-    private boolean powerUp(float frequency) {
+    private boolean powerUp(int frequency) {
         if (mPowerStatus == POWER_UP) {
             return true;
         }
@@ -573,8 +573,8 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         return (mPowerStatus == POWER_UP);
     }
 
-    private boolean playFrequency(float frequency) {
-        mCurrentStation = FmUtils.computeStation(frequency);
+    private boolean playFrequency(int frequency) {
+        mCurrentStation = frequency;
         FmStation.setCurrentStation(mContext, mCurrentStation);
         // Add notification to the title bar.
         updatePlayingNotification();
@@ -665,23 +665,23 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
      *
      * @return true, success; false, fail.
      */
-    public void tuneStationAsync(float frequency) {
+    public void tuneStationAsync(int frequency) {
         mFmServiceHandler.removeMessages(FmListener.MSGID_TUNE_FINISHED);
         final int bundleSize = 1;
         Bundle bundle = new Bundle(bundleSize);
-        bundle.putFloat(FM_FREQUENCY, frequency);
+        bundle.putInt(FM_FREQUENCY, frequency);
         Message msg = mFmServiceHandler.obtainMessage(FmListener.MSGID_TUNE_FINISHED);
         msg.setData(bundle);
         mFmServiceHandler.sendMessage(msg);
     }
 
-    private boolean tuneStation(float frequency) {
+    private boolean tuneStation(int frequency) {
         if (mPowerStatus == POWER_UP) {
             setRds(false);
             boolean bRet = mFmSonyEricsson.tune(frequency);
             if (bRet) {
                 setRds(true);
-                mCurrentStation = FmUtils.computeStation(frequency);
+                mCurrentStation = frequency;
                 FmStation.setCurrentStation(mContext, mCurrentStation);
                 updatePlayingNotification();
             }
@@ -712,25 +712,25 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
      *
      * @return the frequency after seek
      */
-    public void seekStationAsync(float frequency, boolean isUp) {
+    public void seekStationAsync(int frequency, boolean isUp) {
         mFmServiceHandler.removeMessages(FmListener.MSGID_SEEK_FINISHED);
         final int bundleSize = 2;
         Bundle bundle = new Bundle(bundleSize);
-        bundle.putFloat(FM_FREQUENCY, frequency);
+        bundle.putInt(FM_FREQUENCY, frequency);
         bundle.putBoolean(OPTION, isUp);
         Message msg = mFmServiceHandler.obtainMessage(FmListener.MSGID_SEEK_FINISHED);
         msg.setData(bundle);
         mFmServiceHandler.sendMessage(msg);
     }
 
-    private float seekStation(float frequency, boolean isUp) {
+    private int seekStation(int frequency, boolean isUp) {
         if (mPowerStatus != POWER_UP) {
             return -1;
         }
 
         setRds(false);
         mIsNativeSeeking = true;
-        float fRet = mFmSonyEricsson.seek(frequency, isUp);
+        int fRet = mFmSonyEricsson.seek(frequency, isUp);
         mIsNativeSeeking = false;
         // make mIsStopScanCalled false, avoid stop scan make this true,
         // when start scan, it will return null.
@@ -1273,9 +1273,9 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         if (intent != null) {
             String action = intent.getAction();
             if (FM_SEEK_PREVIOUS.equals(action)) {
-                seekStationAsync(FmUtils.computeFrequency(mCurrentStation), false);
+                seekStationAsync(mCurrentStation, false);
             } else if (FM_SEEK_NEXT.equals(action)) {
-                seekStationAsync(FmUtils.computeFrequency(mCurrentStation), true);
+                seekStationAsync(mCurrentStation, true);
             } else if (FM_TURN_OFF.equals(action)) {
                 powerDownAsync();
             }
@@ -1364,7 +1364,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                                     if (!mIsScanning && !mIsSeeking) {
                                         Log.d(TAG, "startRdsThread, seek or scan not going,"
                                                 + "need to tune here");
-                                        tuneStationAsync(FmUtils.computeFrequency(iFreq));
+                                        tuneStationAsync(iFreq);
                                     }
                                 }
                             }
@@ -1611,7 +1611,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
             if (mPowerStatus == POWER_UP) {
                 setMute(false);
             } else {
-                powerUpAsync(FmUtils.computeFrequency(mCurrentStation));
+                powerUpAsync(mCurrentStation);
             }
         } else {
             // without headset need show plug in earphone tips
@@ -1791,7 +1791,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                     mFmServiceHandler.removeMessages(FmListener.MSGID_POWERUP_FINISHED);
                     mFmServiceHandler.removeMessages(FmListener.MSGID_POWERDOWN_FINISHED);
                     Bundle bundle = new Bundle(bundleSize);
-                    bundle.putFloat(FM_FREQUENCY, FmUtils.computeFrequency(mCurrentStation));
+                    bundle.putInt(FM_FREQUENCY, mCurrentStation);
                     handlePowerUp(bundle);
                 }
                 setMute(false);
@@ -2112,17 +2112,17 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                 // tune to station
                 case FmListener.MSGID_TUNE_FINISHED:
                     bundle = msg.getData();
-                    float tuneStation = bundle.getFloat(FM_FREQUENCY);
+                    int tuneStation = bundle.getInt(FM_FREQUENCY);
                     boolean isTune = tuneStation(tuneStation);
                     // if tune fail, pass current station to update ui
                     if (!isTune) {
-                        tuneStation = FmUtils.computeFrequency(mCurrentStation);
+                        tuneStation = mCurrentStation;
                     }
                     bundle = new Bundle(3);
                     bundle.putInt(FmListener.CALLBACK_FLAG,
                             FmListener.MSGID_TUNE_FINISHED);
                     bundle.putBoolean(FmListener.KEY_IS_TUNE, isTune);
-                    bundle.putFloat(FmListener.KEY_TUNE_TO_STATION, tuneStation);
+                    bundle.putInt(FmListener.KEY_TUNE_TO_STATION, tuneStation);
                     notifyActivityStateChanged(bundle);
                     break;
 
@@ -2130,22 +2130,21 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                 case FmListener.MSGID_SEEK_FINISHED:
                     bundle = msg.getData();
                     mIsSeeking = true;
-                    float seekStation = seekStation(bundle.getFloat(FM_FREQUENCY),
+                    int seekStation = seekStation(bundle.getInt(FM_FREQUENCY),
                             bundle.getBoolean(OPTION));
                     boolean isStationTunningSuccessed = false;
-                    int station = FmUtils.computeStation(seekStation);
-                    if (FmUtils.isValidStation(station)) {
+                    if (FmUtils.isValidStation(seekStation)) {
                         isStationTunningSuccessed = tuneStation(seekStation);
                     }
                     // if tune fail, pass current station to update ui
                     if (!isStationTunningSuccessed) {
-                        seekStation = FmUtils.computeFrequency(mCurrentStation);
+                        seekStation = mCurrentStation;
                     }
                     bundle = new Bundle(2);
                     bundle.putInt(FmListener.CALLBACK_FLAG,
                             FmListener.MSGID_TUNE_FINISHED);
                     bundle.putBoolean(FmListener.KEY_IS_TUNE, isStationTunningSuccessed);
-                    bundle.putFloat(FmListener.KEY_TUNE_TO_STATION, seekStation);
+                    bundle.putInt(FmListener.KEY_TUNE_TO_STATION, seekStation);
                     notifyActivityStateChanged(bundle);
                     mIsSeeking = false;
                     break;
@@ -2157,7 +2156,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                     int scanTuneStation = 0;
                     boolean isScan = true;
                     mIsScanning = true;
-                    if (powerUp(FmUtils.DEFAULT_STATION_FLOAT)) {
+                    if (powerUp(FmUtils.DEFAULT_STATION)) {
                         stations = startScan();
                     }
 
@@ -2170,7 +2169,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
                     } else {
                         result = updateStations(stations);
                         scanTuneStation = result[0];
-                        tuneStation(FmUtils.computeFrequency(mCurrentStation));
+                        tuneStation(mCurrentStation);
                     }
 
                     /*
@@ -2259,7 +2258,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
     private void handlePowerUp(Bundle bundle) {
         boolean isPowerUp = false;
         boolean isSwitch = true;
-        float curFrequency = bundle.getFloat(FM_FREQUENCY);
+        int curFrequency = bundle.getInt(FM_FREQUENCY);
 
         if (!isAntennaAvailable()) {
             Log.d(TAG, "handlePowerUp, earphone is not ready");
@@ -2386,15 +2385,14 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         super.onTaskRemoved(rootIntent);
     }
 
-    private boolean firstPlaying(float frequency) {
+    private boolean firstPlaying(int frequency) {
         if (mPowerStatus != POWER_UP) {
             Log.w(TAG, "firstPlaying, FM is not powered up");
             return false;
         }
         boolean isSeekTune = false;
-        float seekStation = mFmSonyEricsson.seek(frequency, false);
-        int station = FmUtils.computeStation(seekStation);
-        if (FmUtils.isValidStation(station)) {
+        int seekStation = mFmSonyEricsson.seek(frequency, false);
+        if (FmUtils.isValidStation(seekStation)) {
             isSeekTune = mFmSonyEricsson.tune(seekStation);
             if (isSeekTune) {
                 playFrequency(seekStation);
@@ -2402,7 +2400,7 @@ public class FmService extends Service implements FmRecorder.OnRecorderStateChan
         }
         // if tune fail, pass current station to update ui
         if (!isSeekTune) {
-            seekStation = FmUtils.computeFrequency(mCurrentStation);
+            seekStation = mCurrentStation;
         }
         return isSeekTune;
     }

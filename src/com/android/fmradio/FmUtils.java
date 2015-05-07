@@ -41,7 +41,6 @@ public class FmUtils {
 
     // FM station variables
     public static final int DEFAULT_STATION = 1000;
-    public static final float DEFAULT_STATION_FLOAT = computeFrequency(DEFAULT_STATION);
     // maximum station frequency
     private static final int HIGHEST_STATION = 1080;
     // minimum station frequency
@@ -107,28 +106,6 @@ public class FmUtils {
             result = HIGHEST_STATION;
         }
         return result;
-    }
-
-    /**
-     * Compute station value with given frequency
-     *
-     * @param frequency The station frequency
-     *
-     * @return station The result value
-     */
-    public static int computeStation(float frequency) {
-        return (int) (frequency * CONVERT_RATE);
-    }
-
-    /**
-     * Compute frequency value with given station
-     *
-     * @param station The station value
-     *
-     * @return station The frequency
-     */
-    public static float computeFrequency(int station) {
-        return (float) station / CONVERT_RATE;
     }
 
     /**
