@@ -743,6 +743,14 @@ public class FmMainActivity extends Activity implements FmFavoriteEditDialog.Edi
         mMenuItemHeadset = menu.findItem(R.id.fm_headset);
         mMenuItemStartRecord = menu.findItem(R.id.fm_start_record);
         mMenuItemRecordList = menu.findItem(R.id.fm_record_list);
+
+        /**
+         * Don't show record feature
+         * TODO: Debug recording issue
+         */
+        mMenuItemStartRecord.setVisible(false);
+        mMenuItemRecordList.setVisible(false);
+        
         return true;
     }
 
