@@ -31,6 +31,8 @@
 #include <signal.h>
 #include <errno.h>
 #include <dlfcn.h>
+#include <string.h>
+#include <strings.h>
 
 #include "fm.h"
 
