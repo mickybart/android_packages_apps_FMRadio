@@ -83,10 +83,12 @@ public class FmDeviceSonyEricsson implements IFmDevice, FmReceiver.onServiceAvai
     public boolean closeDev(){
         Log.i(TAG, "closeDev");
 
-        if (mFmReceiver != null) {
-            turnOffRadio();
-            mFmReceiver.cleanup();
-            mFmReceiver = null;
+        synchronized (lock) {
+            if (mFmReceiver != null) {
+                turnOffRadio();
+                mFmReceiver.cleanup();
+                mFmReceiver = null;
+            }
         }
 
         return (mFmReceiver == null);
