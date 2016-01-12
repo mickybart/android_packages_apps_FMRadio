@@ -66,6 +66,14 @@ public class FmUtils {
     // StorageManager For FM record
     private static StorageManager sStorageManager = null;
 
+    public static int getHighestStation() {
+        return HIGHEST_STATION;
+    }
+
+    public static int getLowestStation() {
+        return LOWEST_STATION;
+    }
+
     /**
      * Whether the frequency is valid.
      *

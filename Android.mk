@@ -22,7 +22,11 @@ LOCAL_CERTIFICATE := platform
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 
 LOCAL_PACKAGE_NAME := FMRadio
+ifeq ($(strip $(BOARD_HAVE_FMRADIO_BCM)),true)
+LOCAL_STATIC_JAVA_LIBRARIES += com.broadcom.fm
+else
 LOCAL_JNI_SHARED_LIBRARIES := libfmjni
+endif
 
 LOCAL_PROGUARD_ENABLED := disabled
 LOCAL_PRIVILEGED_MODULE := true
@@ -34,4 +38,6 @@ LOCAL_AAPT_FLAGS := --auto-add-overlay --extra-packages android.support.v7.cardv
 
 include $(BUILD_PACKAGE)
 
+ifneq ($(strip $(BOARD_HAVE_FMRADIO_BCM)),true)
 include $(call all-makefiles-under,$(LOCAL_PATH))
+endif

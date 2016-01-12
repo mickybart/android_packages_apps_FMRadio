@@ -21,18 +21,20 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.media.MediaPlayer;
-import android.media.MediaRecorder;
+import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaFormat;
+import android.media.MediaMuxer;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Environment;
-import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.text.format.DateFormat;
 import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -41,15 +43,15 @@ import java.util.Locale;
  * This class provider interface to recording, stop recording, save recording
  * file, play recording file
  */
-public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.OnInfoListener {
+public class FmRecorder {
     private static final String TAG = "FmRecorder";
     // file prefix
     public static final String RECORDING_FILE_PREFIX = "FM";
     // file extension
-    public static final String RECORDING_FILE_EXTENSION = ".3gpp";
+    public static final String RECORDING_FILE_EXTENSION = ".m4a";
     // recording file folder
     public static final String FM_RECORD_FOLDER = "FM Recording";
-    private static final String RECORDING_FILE_TYPE = "audio/3gpp";
+    private static final String RECORDING_FILE_TYPE = "audio/mp4";
     private static final String RECORDING_FILE_SOURCE = "FM Recordings";
     // error type no sdcard
     public static final int ERROR_SDCARD_NOT_PRESENT = 0;
@@ -73,8 +75,6 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
     public int mInternalState = STATE_IDLE;
     // the recording time after start recording
     private long mRecordTime = 0;
-    // record start time
-    private long mRecordStartTime = 0;
     // current record file
     private File mRecordFile = null;
     // record current record file is saved by user
@@ -82,15 +82,19 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
     // listener use for notify service the record state or error state
     private OnRecorderStateChangedListener mStateListener = null;
     // recorder use for record file
-    private MediaRecorder mRecorder = null;
+    private MediaCodec mMediaCodec = null;
+    private MediaMuxer mMediaMuxer = null;
+    private int mTrackIndex;
+    private int mSampleRate;
 
     /**
      * Start recording the voice of FM, also check the pre-conditions, if not
      * meet, will return an error message to the caller. if can start recording
      * success, will set FM record state to recording and notify to the caller
      */
-    public void startRecording(Context context) {
+    public synchronized void startRecording(Context context, int samplerate) {
         mRecordTime = 0;
+        mSampleRate = samplerate;
 
         // Check external storage
         if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
@@ -146,29 +150,20 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
         }
         // set record parameter and start recording
         try {
-            mRecorder = new MediaRecorder();
-            mRecorder.setOnErrorListener(this);
-            mRecorder.setOnInfoListener(this);
-            mRecorder.setAudioSource(MediaRecorder.AudioSource.RADIO_TUNER);
-            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-            mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            final int samplingRate = 44100;
-            mRecorder.setAudioSamplingRate(samplingRate);
-            final int bitRate = 128000;
-            mRecorder.setAudioEncodingBitRate(bitRate);
-            final int audiochannels = 2;
-            mRecorder.setAudioChannels(audiochannels);
-            mRecorder.setOutputFile(mRecordFile.getAbsolutePath());
-            mRecorder.prepare();
-            mRecordStartTime = SystemClock.elapsedRealtime();
-            mRecorder.start();
+            MediaFormat format = new MediaFormat();
+            format.setString("mime", "audio/mp4a-latm");
+            format.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 2);
+            format.setInteger(MediaFormat.KEY_SAMPLE_RATE, mSampleRate);
+            format.setInteger(MediaFormat.KEY_BIT_RATE, 96000);
+            format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+            mMediaCodec = MediaCodec.createEncoderByType("audio/mp4a-latm");
+            mMediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            mMediaCodec.start();
+
             mIsRecordingFileSaved = false;
-        } catch (IllegalStateException e) {
-            Log.e(TAG, "startRecording, IllegalStateException while starting recording!", e);
-            setError(ERROR_RECORDER_INTERNAL);
-            return;
-        } catch (IOException e) {
-            Log.e(TAG, "startRecording, IOException while starting recording!", e);
+        } catch (Exception e) {
+            Log.e(TAG, "startRecording, Exception while starting recording!", e);
+            stopRecorder();
             setError(ERROR_RECORDER_INTERNAL);
             return;
         }
@@ -178,15 +173,88 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
     /**
      * Stop recording, compute recording time and update FM recorder state
      */
-    public void stopRecording() {
+    public synchronized void stopRecording() {
         if (STATE_RECORDING != mInternalState) {
             Log.w(TAG, "stopRecording, called in wrong state!!");
             return;
         }
 
-        mRecordTime = SystemClock.elapsedRealtime() - mRecordStartTime;
         stopRecorder();
         setState(STATE_IDLE);
+    }
+
+    /**
+     * Record input samples
+     */
+    public synchronized void record(byte[] input) {
+        if (STATE_RECORDING == mInternalState) {
+            MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+            MediaCodec.BufferInfo bufferInfoOld = new MediaCodec.BufferInfo();
+            byte[] output = new byte[1024 * 1024];
+
+            try {
+                int offset = 0, size;
+                while (offset < input.length) {
+                    int index = mMediaCodec.dequeueInputBuffer(-1);
+                    if (index < 0)
+                        break;
+
+                    ByteBuffer buffer = mMediaCodec.getInputBuffer(index);
+                    size = input.length - offset;
+                    if (size > buffer.capacity())
+                        size = buffer.capacity();
+                    size &= ~3;
+                    buffer.clear();
+                    buffer.put(input, offset, size);
+                    offset += size;
+                    mMediaCodec.queueInputBuffer(index, 0, size, mRecordTime * 1000000 / mSampleRate, 0);
+                    mRecordTime += size / 4;
+
+                    size = 0;
+                    index = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+                    while (true) {
+                        if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                            if (mMediaMuxer == null) {
+                                mMediaMuxer = new MediaMuxer(mRecordFile.getAbsolutePath(), MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+                                mTrackIndex = mMediaMuxer.addTrack(mMediaCodec.getOutputFormat());
+                                mMediaMuxer.start();
+                            }
+                            index = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+                        } else if (index >= 0) {
+                            if (size == 0) {
+                                bufferInfoOld.set(bufferInfo.offset, bufferInfo.size, bufferInfo.presentationTimeUs, bufferInfo.flags);
+                            } else if (bufferInfoOld.presentationTimeUs < bufferInfo.presentationTimeUs) {
+                                bufferInfoOld.offset = 0;
+                                bufferInfoOld.size = size;
+                                mMediaMuxer.writeSampleData(mTrackIndex, ByteBuffer.wrap(output, 0, size), bufferInfoOld);
+                                size = 0;
+                                bufferInfoOld.set(bufferInfo.offset, bufferInfo.size, bufferInfo.presentationTimeUs, bufferInfo.flags);
+                            }
+
+                            buffer = mMediaCodec.getOutputBuffer(index);
+                            buffer.position(bufferInfo.offset);
+                            buffer.limit(bufferInfo.offset + bufferInfo.size);
+                            buffer.get(output, size, bufferInfo.size);
+                            size += bufferInfo.size;
+                            mMediaCodec.releaseOutputBuffer(index, false);
+                            index = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
+                        } else {
+                            break;
+                        }
+                    }
+                    if (size > 0) {
+                        bufferInfoOld.offset = 0;
+                        bufferInfoOld.size = size;
+                        mMediaMuxer.writeSampleData(mTrackIndex, ByteBuffer.wrap(output, 0, offset), bufferInfoOld);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "record, Exception while recording!", e);
+                stopRecorder();
+                setError(ERROR_RECORDER_INTERNAL);
+                setState(STATE_IDLE);
+            }
+        }
     }
 
     /**
@@ -194,11 +262,11 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
      *
      * @return The current record time
      */
-    public long getRecordTime() {
+    public synchronized long getRecordTime() {
         if (STATE_RECORDING == mInternalState) {
-            mRecordTime = SystemClock.elapsedRealtime() - mRecordStartTime;
+            return mRecordTime * 1000 / mSampleRate;
         }
-        return mRecordTime;
+        return 0;
     }
 
     /**
@@ -206,7 +274,7 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
      *
      * @return FM recorder current state
      */
-    public int getState() {
+    public synchronized int getState() {
         return mInternalState;
     }
 
@@ -252,8 +320,8 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
     /**
      * Discard current recording file, release recorder and player
      */
-    public void discardRecording() {
-        if ((STATE_RECORDING == mInternalState) && (null != mRecorder)) {
+    public synchronized void discardRecording() {
+        if (STATE_RECORDING == mInternalState) {
             stopRecorder();
         }
 
@@ -263,7 +331,6 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
                 Log.d(TAG, "discardRecording, delete file failed!");
             }
             mRecordFile = null;
-            mRecordStartTime = 0;
             mRecordTime = 0;
         }
         setState(STATE_IDLE);
@@ -298,42 +365,14 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
     }
 
     /**
-     * When recorder occur error, release player, notify error message, and
-     * update FM recorder state to idle
-     *
-     * @param mr The current recorder
-     * @param what The error message type
-     * @param extra The error message extra
-     */
-    @Override
-    public void onError(MediaRecorder mr, int what, int extra) {
-        Log.e(TAG, "onError, what = " + what + ", extra = " + extra);
-        stopRecorder();
-        setError(ERROR_RECORDER_INTERNAL);
-        if (STATE_RECORDING == mInternalState) {
-            setState(STATE_IDLE);
-        }
-    }
-
-    @Override
-    public void onInfo(MediaRecorder mr, int what, int extra) {
-        Log.d(TAG, "onInfo: what=" + what + ", extra=" + extra);
-        if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED || 
-            what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED) {
-            onError(mr, what, extra);
-        }
-    }
-
-    /**
      * Reset FM recorder
      */
-    public void resetRecorder() {
-        if (mRecorder != null) {
-            mRecorder.release();
-            mRecorder = null;
+    public synchronized void resetRecorder() {
+        if (STATE_RECORDING == mInternalState) {
+            stopRecorder();
         }
+
         mRecordFile = null;
-        mRecordStartTime = 0;
         mRecordTime = 0;
         mInternalState = STATE_IDLE;
     }
@@ -523,18 +562,21 @@ public class FmRecorder implements MediaRecorder.OnErrorListener, MediaRecorder.
     }
 
     private void stopRecorder() {
-        synchronized (this) {
-            if (mRecorder != null) {
-                try {
-                    mRecorder.stop();
-                } catch (IllegalStateException ex) {
-                    Log.e(TAG, "stopRecorder, IllegalStateException ocurr " + ex);
-                    setError(ERROR_RECORDER_INTERNAL);
-                } finally {
-                    mRecorder.release();
-                    mRecorder = null;
-                }
+        if (mMediaCodec != null) {
+            try {
+                mMediaCodec.release();
+            } catch (Exception ex) {
+
             }
+            mMediaCodec = null;
+        }
+        if (mMediaMuxer != null) {
+            try {
+                mMediaMuxer.release();
+            } catch (Exception ex) {
+
+            }
+            mMediaMuxer = null;
         }
     }
 }

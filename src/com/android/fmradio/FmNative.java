@@ -16,27 +16,33 @@
 
 package com.android.fmradio;
 
+import android.content.Context;
+
 /**
  * This class define FM native interface, will description FM native interface
  */
-public class FmNative {
-    static {
-        System.loadLibrary("fmjni");
-    }
+public abstract class FmNative {
+    private static FmNative mInstance = null;
+
+    public static synchronized FmNative getInstance() {
+	    if (mInstance == null)
+            mInstance = new FmNativeBroadcom();
+	    return mInstance;
+	}
 
     /**
      * Open FM device, call before power up
      *
      * @return (true,success; false, failed)
      */
-    static native boolean openDev();
+    public abstract boolean openDev(Context ctx);
 
     /**
      * Close FM device, call after power down
      *
      * @return (true, success; false, failed)
      */
-    static native boolean closeDev();
+    public abstract boolean closeDev();
 
     /**
      * power up FM with frequency use long antenna
@@ -45,7 +51,7 @@ public class FmNative {
      *
      * @return (true, success; false, failed)
      */
-    static native boolean powerUp(float frequency);
+    public abstract boolean powerUp(float frequency);
 
     /**
      * Power down FM
@@ -54,7 +60,7 @@ public class FmNative {
      *
      * @return (true, success; false, failed)
      */
-    static native boolean powerDown(int type);
+    public abstract boolean powerDown(int type);
 
     /**
      * tune to frequency
@@ -63,7 +69,7 @@ public class FmNative {
      *
      * @return (true, success; false, failed)
      */
-    static native boolean tune(float frequency);
+    public abstract boolean tune(float frequency);
 
     /**
      * seek with frequency in direction
@@ -73,14 +79,14 @@ public class FmNative {
      *
      * @return frequency(float)
      */
-    static native float seek(float frequency, boolean isUp);
+    public abstract float seek(float frequency, boolean isUp);
 
     /**
      * Auto scan(from 87.50-108.00)
      *
      * @return The scan station array(short)
      */
-    static native short[] autoScan();
+    public abstract short[] autoScan();
 
     /**
      * Stop scan, also can stop seek, other native when scan should call stop
@@ -88,7 +94,7 @@ public class FmNative {
      *
      * @return (true, can stop scan process; false, can't stop scan process)
      */
-    static native boolean stopScan();
+    public abstract boolean stopScan();
 
     /**
      * Open or close rds fuction
@@ -97,35 +103,35 @@ public class FmNative {
      *
      * @return rdsset
      */
-    static native int setRds(boolean rdson);
+    public abstract int setRds(boolean rdson);
 
     /**
      * Read rds events
      *
      * @return rds event type
      */
-    static native short readRds();
+    public abstract short readRds();
 
     /**
      * Get program service(program name)
      *
      * @return The program name
      */
-    static native byte[] getPs();
+    public abstract byte[] getPs();
 
     /**
      * Get radio text, RDS standard does not support Chinese character
      *
      * @return The LRT (Last Radio Text) bytes
      */
-    static native byte[] getLrText();
+    public abstract byte[] getLrText();
 
     /**
      * Active alternative frequencies
      *
      * @return The frequency(float)
      */
-    static native short activeAf();
+    public abstract short activeAf();
 
     /**
      * Mute or unmute FM voice
@@ -134,14 +140,14 @@ public class FmNative {
      *
      * @return (true, success; false, failed)
      */
-    static native int setMute(boolean mute);
+    public abstract int setMute(boolean mute);
 
     /**
      * Inquiry if RDS is support in driver
      *
      * @return (1, support; 0, NOT support; -1, error)
      */
-    static native int isRdsSupport();
+    public abstract int isRdsSupport();
 
     /**
      * Switch antenna
@@ -150,5 +156,5 @@ public class FmNative {
      *
      * @return (0, success; 1 failed; 2 not support)
      */
-    static native int switchAntenna(int antenna);
+    public abstract int switchAntenna(int antenna);
 }
