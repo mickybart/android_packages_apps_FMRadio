@@ -66,14 +66,20 @@ public class FmNativeBroadcom extends FmNative implements IFmProxyCallback, IFmR
     public boolean closeDev() {
         synchronized(this) {
             if (mFmReceiver != null) {
-                mFmReceiver.unregisterEventHandler();
-                mFmReceiver.finish();
-                mFmReceiver = null;
+                try {
+                    mFmReceiver.unregisterEventHandler();
+                    mFmReceiver.finish();
+                } catch (IllegalArgumentException ei) {
+
+                } catch (Exception e) {
+                   // Fatal Exception to closeDev
+                } finally {
+                    mFmReceiver = null;
+                }
             }
     	    return true;
     	}
     }
-
 
     public boolean powerUp(float frequency) {
         synchronized (this) {
